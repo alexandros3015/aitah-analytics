@@ -1,12 +1,34 @@
 <script lang="ts">
+
+    const Opinion = {
+        NTA: "Not the Asshole",
+        YTA: "You're the Asshole",
+        ESH: "Everyone sucks here",
+        NAH: "Not assholes here",
+        INFO: "More information needed" ,
+        NONE: "None"
+    } as const;
+
+    type Reply = {
+        id: number;
+        upvotes: number;
+        downvotes: number;
+        upvote_ratio: number;
+        reliability: number;
+        opinion: typeof Opinion[keyof typeof Opinion];
+    };
+  
+    const replyAccuracy: number = 20;
+    let replies: Reply[] = [];
+
 	let url: string = $state("");
     let analyzed: boolean = $state(false);
+    let analyzedReply:boolean = $state(false);
 
 
     let upvotes: number = $state(0);
     let downvotes: number = $state(0);
     let updownRatio: number = $state(0);
-
 
 
     async function processURL(urle: string) {
@@ -21,6 +43,30 @@
         upvotes = data[0]["data"]["children"][0]["data"]["ups"];
         downvotes = data[0]["data"]["children"][0]["data"]["downs"];
         updownRatio = data[0]["data"]["children"][0]["data"]["upvote_ratio"];
+
+        for (let i = 0; i < replyAccuracy; i++) {
+            console.log(`Processing reply ${i}`);
+            const replyInfo: any = data[1]["data"]["children"][i]["data"]
+            const text: string = replyInfo["body"];
+            let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
+
+            if (text.toLowerCase().includes("yta")) opinion = Opinion.YTA;
+            else if (text.toLowerCase().includes("nta")) opinion = Opinion.NTA;
+            else if (text.toLowerCase().includes("esh")) opinion = Opinion.ESH;
+            else if (text.toLowerCase().includes("nah")) opinion = Opinion.NAH;
+            else if (text.toLowerCase().includes("info")) opinion = Opinion.INFO;
+            else opinion = Opinion.NONE;
+
+            replies.push({
+                id: i,
+                upvotes: replyInfo["ups"],
+                downvotes: replyInfo["downs"],
+                upvote_ratio: replyInfo["upvote_ratio"],
+                reliability: replyInfo["upvote_ratio"], // TODO: calculate reliability score more accurately
+                opinion: opinion
+            });
+        }
+        analyzedReply = true;
     }
 </script>
 
@@ -39,7 +85,14 @@
         <p>Upvotes: {upvotes}</p>
         <p>Downvotes: {downvotes}</p>
         <p>Updown Ratio: {updownRatio}</p>
-    {:else}
-        <p>waiting for response...</p>
+
+    {/if}
+    {#if analyzedReply}
+        <p>Analyzed Reply</p>
+        <p>Upvotes: {replies[0].upvotes}</p>
+        <p>Downvotes: {replies[0].downvotes}</p>
+        <p>Updown Ratio: {replies[0].upvote_ratio}</p>
+        <p>Reliability: {replies[0].reliability}</p>
+        <p>Opinion: {replies[0].opinion}</p>
     {/if}
 </div>
