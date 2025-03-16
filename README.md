@@ -1,1 +1,1 @@
-# aitah-analytics
+# Am I the Asshole Analytics
