@@ -1,4 +1,8 @@
 <script lang="ts">
+    import Chart from "chart.js/auto";
+    import { onMount } from "svelte";
+
+    const debug = $state(true); // Make sure to set this to false before deploying
 
     const Opinion = {
         NTA: "Not the Asshole",
@@ -6,11 +10,12 @@
         ESH: "Everyone sucks here",
         NAH: "Not assholes here",
         INFO: "More information needed" ,
-        NONE: "None"
+        NONE: "None or Unknown"
     } as const;
 
     type Reply = {
         id: number;
+        message: string;
         upvotes: number;
         downvotes: number;
         upvote_ratio: number;
@@ -18,13 +23,12 @@
         opinion: typeof Opinion[keyof typeof Opinion];
     };
   
-    const replyAccuracy: number = 20;
-    let replies: Reply[] = [];
+    let replyAccuracy: number = 20;
+    let replies: Reply[] = $state([]);
 
 	let url: string = $state("");
     let analyzed: boolean = $state(false);
     let analyzedReply:boolean = $state(false);
-
 
     let upvotes: number = $state(0);
     let downvotes: number = $state(0);
@@ -32,6 +36,9 @@
 
 
     async function processURL(urle: string) {
+        analyzed = false;
+        analyzedReply = false;
+        replies = [];
         
         let url = urle.endsWith("/") ? urle.slice(0, -1) : urle;
         url = url + ".json";
@@ -40,38 +47,88 @@
         analyzed = true;
         const data: any = await response.json();
 
+        replyAccuracy = data[1]["data"]["children"].length - 1;
+        console.log(`Reply Accuracy: ${replyAccuracy}`);
+
         upvotes = data[0]["data"]["children"][0]["data"]["ups"];
         downvotes = data[0]["data"]["children"][0]["data"]["downs"];
         updownRatio = data[0]["data"]["children"][0]["data"]["upvote_ratio"];
 
         for (let i = 0; i < replyAccuracy; i++) {
-            console.log(`Processing reply ${i}`);
-            const replyInfo: any = data[1]["data"]["children"][i]["data"]
-            const text: string = replyInfo["body"];
-            let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
+            try { 
+                console.log(`Processing reply ${i}`);
+                const replyInfo: any = data[1]["data"]["children"][i]["data"]
 
-            if (text.toLowerCase().includes("yta")) opinion = Opinion.YTA;
-            else if (text.toLowerCase().includes("nta")) opinion = Opinion.NTA;
-            else if (text.toLowerCase().includes("esh")) opinion = Opinion.ESH;
-            else if (text.toLowerCase().includes("nah")) opinion = Opinion.NAH;
-            else if (text.toLowerCase().includes("info")) opinion = Opinion.INFO;
-            else opinion = Opinion.NONE;
+                if (replyInfo["author"] == "Judgement_Bot_AITA") continue;
 
-            replies.push({
-                id: i,
-                upvotes: replyInfo["ups"],
-                downvotes: replyInfo["downs"],
-                upvote_ratio: replyInfo["upvote_ratio"],
-                reliability: replyInfo["upvote_ratio"], // TODO: calculate reliability score more accurately
-                opinion: opinion
+                const upvote_ratioREPLY: number = Math.min(replyInfo["ups"] / replyInfo["downs"], 1);
+                const text: string = replyInfo["body"];
+                let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
+                
+
+                if (/yta/.test(text.toLowerCase())) opinion = Opinion.YTA;
+                else if (/nta/.test(text.toLowerCase())) opinion = Opinion.NTA;
+                else if (/esh/.test(text.toLowerCase())) opinion = Opinion.ESH;
+                else if (/nah/.test(text.toLowerCase())) opinion = Opinion.NAH;
+                else if (/info/.test(text.toLowerCase())) opinion = Opinion.INFO;
+                else opinion = Opinion.NONE;
+
+                replies.push({
+                    id: i,
+                    upvotes: replyInfo["ups"],
+                    downvotes: replyInfo["downs"],
+                    upvote_ratio: upvote_ratioREPLY,
+                    reliability: upvote_ratioREPLY, // TODO: calculate reliability score more accurately
+                    opinion: opinion,
+                    message: text
+                });
+            }
+            catch (e) {
+                console.log(`Error processing reply ${i}: ${e}`);
+            }
+        analyzedReply = true;
+        console.log(replies);
+        }
+    }
+
+    
+    onMount(() => {
+        // Once the replies are processed and analyzed, create the charts for each reply
+        if (analyzedReply) {
+            replies.forEach((reply, index) => {
+                const canvas = document.getElementById(`chart-${index}`) as HTMLCanvasElement;
+                if (canvas) {
+                    new Chart(canvas, {
+                        type: "pie",
+                        data: {
+                            labels: ["Upvotes", "Downvotes"],
+                            datasets: [
+                                {
+                                    label: "Votes",
+                                    data: [reply.upvotes, reply.downvotes],
+                                    backgroundColor: ["#FF6384", "#36A2EB"],
+                                    borderColor: "#fff",
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: "top"
+                                }
+                            }
+                        },
+                    });
+                }
             });
         }
-        analyzedReply = true;
-    }
+    });
 </script>
 
 
-<div class="flex flex-col text-center bg-gray-800 text-white h-screen">
+<div class="flex flex-col text-center bg-gray-800 text-white min-h-screen">
     <h1>Welcome to Am I the Asshole Analytics</h1>
     <p>Gives cool Analytics on assholery.</p>
     <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p> 
@@ -86,13 +143,11 @@
         <p>Downvotes: {downvotes}</p>
         <p>Updown Ratio: {updownRatio}</p>
 
-    {/if}
-    {#if analyzedReply}
-        <p>Analyzed Reply</p>
-        <p>Upvotes: {replies[0].upvotes}</p>
-        <p>Downvotes: {replies[0].downvotes}</p>
-        <p>Updown Ratio: {replies[0].upvote_ratio}</p>
-        <p>Reliability: {replies[0].reliability}</p>
-        <p>Opinion: {replies[0].opinion}</p>
+
+        <p class="p-1">Replies data:</p>
+        {#if analyzedReply}
+            <p></p>
+        {/if}
+
     {/if}
 </div>

@@ -35,6 +35,6 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
-		"chartjs": "^0.3.24"
+		"chart.js": "^4.4.8"
 	}
 }
