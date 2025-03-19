@@ -41,6 +41,11 @@
 
     // Fetch the data from the URL
     async function processURL(urle: string) {
+        if (urle === "") {
+            alert("AH HELL NAH BRO THIS KID DIDN'T TYPE ANYTHING 😭🥀");
+            return;
+        }
+
         analyzed = false;
         analyzedReply = false;
         replies = [];
