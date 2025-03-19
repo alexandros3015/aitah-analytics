@@ -1,6 +1,5 @@
 <script lang="ts">
     import Chart from "chart.js/auto";
-    import { onMount } from "svelte";
 
     const debug = $state(false);
 
