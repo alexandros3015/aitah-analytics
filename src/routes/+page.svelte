@@ -2,14 +2,14 @@
     import Chart from "chart.js/auto";
     import { onMount } from "svelte";
 
-    const debug = $state(true); // Make sure to set this to false before deploying
+    const debug = $state(true);
 
     const Opinion = {
         NTA: "Not the Asshole",
         YTA: "You're the Asshole",
         ESH: "Everyone sucks here",
         NAH: "Not assholes here",
-        INFO: "More information needed" ,
+        INFO: "More information needed",
         NONE: "None or Unknown"
     } as const;
 
@@ -22,24 +22,26 @@
         reliability: number;
         opinion: typeof Opinion[keyof typeof Opinion];
     };
-  
+
     let replyAccuracy: number = 20;
     let replies: Reply[] = $state([]);
+    let opinionTotal = $state({});
+    let averageOpinion: Record<string, number> = $state({});
 
-	let url: string = $state("");
+    let url: string = $state("");
     let analyzed: boolean = $state(false);
-    let analyzedReply:boolean = $state(false);
+    let analyzedReply: boolean = $state(false);
+    let generalConsensus: string = $state("");
 
     let upvotes: number = $state(0);
     let downvotes: number = $state(0);
     let updownRatio: number = $state(0);
 
-
     async function processURL(urle: string) {
         analyzed = false;
         analyzedReply = false;
         replies = [];
-        
+
         let url = urle.endsWith("/") ? urle.slice(0, -1) : urle;
         url = url + ".json";
 
@@ -55,16 +57,15 @@
         updownRatio = data[0]["data"]["children"][0]["data"]["upvote_ratio"];
 
         for (let i = 0; i < replyAccuracy; i++) {
-            try { 
+            try {
                 console.log(`Processing reply ${i}`);
-                const replyInfo: any = data[1]["data"]["children"][i]["data"]
+                const replyInfo: any = data[1]["data"]["children"][i]["data"];
 
                 if (replyInfo["author"] == "Judgement_Bot_AITA") continue;
 
                 const upvote_ratioREPLY: number = Math.min(replyInfo["ups"] / replyInfo["downs"], 1);
                 const text: string = replyInfo["body"];
                 let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
-                
 
                 if (/yta/.test(text.toLowerCase())) opinion = Opinion.YTA;
                 else if (/nta/.test(text.toLowerCase())) opinion = Opinion.NTA;
@@ -82,56 +83,73 @@
                     opinion: opinion,
                     message: text
                 });
-            }
-            catch (e) {
+            } catch (e) {
                 console.log(`Error processing reply ${i}: ${e}`);
             }
+
+        }
+
+        // Calculate opinion totals
+        opinionTotal = {
+            "NTA": replies.filter(reply => reply.opinion === Opinion.NTA).length,
+            "YTA": replies.filter(reply => reply.opinion === Opinion.YTA).length,
+            "ESH": replies.filter(reply => reply.opinion === Opinion.ESH).length,
+            "NAH": replies.filter(reply => reply.opinion === Opinion.NAH).length,
+            "INFO": replies.filter(reply => reply.opinion === Opinion.INFO).length
+        };
+
+        let consensus = (Object.entries(opinionTotal) as [string, number][]).reduce(
+            (a, b) => (b[1] > a[1] ? b : a),
+            ["NONE", 0]
+        );
+
+        generalConsensus = consensus[0];
+
         analyzedReply = true;
         console.log(replies);
-        }
     }
 
-    
-    onMount(() => {
-        // Once the replies are processed and analyzed, create the charts for each reply
+    // Aggregate data for one pie chart
+    $effect(() => {
         if (analyzedReply) {
-            replies.forEach((reply, index) => {
-                const canvas = document.getElementById(`chart-${index}`) as HTMLCanvasElement;
-                if (canvas) {
-                    new Chart(canvas, {
-                        type: "pie",
-                        data: {
-                            labels: ["Upvotes", "Downvotes"],
-                            datasets: [
-                                {
-                                    label: "Votes",
-                                    data: [reply.upvotes, reply.downvotes],
-                                    backgroundColor: ["#FF6384", "#36A2EB"],
-                                    borderColor: "#fff",
-                                    borderWidth: 1
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: {
-                                    position: "top"
-                                }
-                            }
-                        },
-                    });
+
+        // Create the pie chart with aggregated data
+        const canvas = document.getElementById("aggregate-chart") as HTMLCanvasElement;
+        if (canvas) {
+            new Chart(canvas, {
+                type: "pie",
+                data: {
+                    labels: ["NTA", "YTA", "ESH", "NAH", "INFO"],
+                    datasets: [
+                        {
+                            label: "Votes",
+                            data: [replies.filter(reply => reply.opinion === Opinion.NTA).length, replies.filter(reply => reply.opinion === Opinion.YTA).length, replies.filter(reply => reply.opinion === Opinion.ESH).length, replies.filter(reply => reply.opinion === Opinion.NAH).length, replies.filter(reply => reply.opinion === Opinion.INFO).length],
+                            backgroundColor: ["#FF6384", "#36A2EB", "#FFFF00", "#00FF00", "#FF0000"],
+                            borderColor: "#fff",
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: "top"
+                        }
+                    }
                 }
             });
+
+
         }
+    }
     });
 </script>
-
 
 <div class="flex flex-col text-center bg-gray-800 text-white min-h-screen">
     <h1>Welcome to Am I the Asshole Analytics</h1>
     <p>Gives cool Analytics on assholery.</p>
-    <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p> 
+    <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p>
     <input class="border-2 border-purple-700 rounded-lg p-2 transition"
     bind:value={url} type="text" placeholder="Enter a URL" />
 
@@ -143,11 +161,33 @@
         <p>Downvotes: {downvotes}</p>
         <p>Updown Ratio: {updownRatio}</p>
 
-
-        <p class="p-1">Replies data:</p>
+        <p class="p-1">Overall Votes Data:</p>
         {#if analyzedReply}
-            <p></p>
-        {/if}
 
+            <div class="text-5xl">
+                REMEMBER:
+                <li>
+                    <ol>NTA: Not the Asshole</ol>
+                    <ol>YTA: You're the Asshole</ol>
+                    <ol>ESH: Everyone sucks here</ol>
+                    <ol>NAH: Not assholes here</ol>
+                    <ol>INFO: More information needed</ol>
+                </li>
+
+            </div>
+
+            <div class="">
+                <canvas id="aggregate-chart" width="300" height="300"></canvas>
+            
+            {#each Object.entries(opinionTotal) as [key, value]}
+                <p class="p-1 text-3xl">{key}: {value}</p>
+            {/each}
+            </div>
+
+            <div class="text-4xl">
+                Average Opinion: {generalConsensus}
+            </div>
+
+        {/if}
     {/if}
 </div>
