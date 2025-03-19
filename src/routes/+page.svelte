@@ -2,8 +2,9 @@
     import Chart from "chart.js/auto";
     import { onMount } from "svelte";
 
-    const debug = $state(true);
+    const debug = $state(false);
 
+    // Define the voting system options
     const Opinion = {
         NTA: "Not the Asshole",
         YTA: "You're the Asshole",
@@ -23,6 +24,8 @@
         opinion: typeof Opinion[keyof typeof Opinion];
     };
 
+
+    // Define ALL the variables
     let replyAccuracy: number = 20;
     let replies: Reply[] = $state([]);
     let opinionTotal = $state({});
@@ -37,6 +40,7 @@
     let downvotes: number = $state(0);
     let updownRatio: number = $state(0);
 
+    // Fetch the data from the URL
     async function processURL(urle: string) {
         analyzed = false;
         analyzedReply = false;
@@ -56,6 +60,7 @@
         downvotes = data[0]["data"]["children"][0]["data"]["downs"];
         updownRatio = data[0]["data"]["children"][0]["data"]["upvote_ratio"];
 
+        // Process the replies
         for (let i = 0; i < replyAccuracy; i++) {
             try {
                 console.log(`Processing reply ${i}`);
@@ -98,6 +103,7 @@
             "INFO": replies.filter(reply => reply.opinion === Opinion.INFO).length
         };
 
+        // Calculate general consensus
         let consensus = (Object.entries(opinionTotal) as [string, number][]).reduce(
             (a, b) => (b[1] > a[1] ? b : a),
             ["NONE", 0]
@@ -187,7 +193,7 @@
             <div class="text-4xl">
                 Average Opinion: {generalConsensus}
             </div>
-
+        <!--Wow-->
         {/if}
     {/if}
 </div>
