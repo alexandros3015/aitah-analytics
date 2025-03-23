@@ -136,7 +136,7 @@
                     ]
                 },
                 options: {
-                    responsive: true,
+                    responsive: false,
                     plugins: {
                         legend: {
                             position: "top"
@@ -181,16 +181,14 @@
 
             </div>
 
-            <div class="">
-                <canvas id="aggregate-chart" width="300" height="300"></canvas>
-            
-            {#each Object.entries(opinionTotal) as [key, value]}
-                <p class="p-1 text-3xl">{key}: {value}</p>
-            {/each}
-            </div>
-
-            <div class="text-4xl">
-                Average Opinion: {generalConsensus}
+            <div class="grid grid-cols-2 items-center"> 
+                <div class="p-2">
+                    {#each Object.entries(opinionTotal) as [key, value]}
+                        <p class="p-1 text-3xl">{key}: {value}</p>
+                    {/each}
+                    <p class="text-4xl">Average Opinion: {generalConsensus}</p> 
+                </div>
+                <canvas id="aggregate-chart" width="800" height="800"></canvas>    
             </div>
         <!--Wow-->
         {/if}
