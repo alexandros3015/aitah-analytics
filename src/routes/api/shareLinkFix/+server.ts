@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
           JSON.stringify({
             error: "Failed to follow redirect on share URL",
           }),
-          { status: 501 }
+          { status: 500 }
         );
       }
       // The URL after redirection should be the full comments URL.
@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
       console.error("Unexpected URL format after resolving:", finalUrl);
       return new Response(
         JSON.stringify({ error: "Unexpected URL format" }),
-        { status: 502 }
+        { status: 500 }
       );
     }
     const subreddit = match[1];
@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ request }) => {
         );
         return new Response(
           JSON.stringify({ error: "Failed to fetch post JSON data" }),
-          { status: 503 }
+          { status: 500 }
         );
       }
       const jsonData = await jsonResponse.json();
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
         console.error("Could not extract post data or title.");
         return new Response(
           JSON.stringify({ error: "Could not extract post data" }),
-          { status: 504 }
+          { status: 500 }
         );
       }
       const title = postData.title;
@@ -118,43 +118,12 @@ export const POST: RequestHandler = async ({ request }) => {
       console.log("Final URL after adding title slug:", finalUrl);
     }
 
-    // TODO: add full functionality
-
-
-        console.log(`URL:`, finalUrl);
-
-        if (finalUrl === null) finalUrl = url;
-        finalUrl = cleanUrl(finalUrl);
-
-        finalUrl = finalUrl.endsWith("/") ? finalUrl.slice(0, -1) : finalUrl;
-        finalUrl = finalUrl + ".json";
-
-        let data: any;
-        try {
-            const response: Response = await fetch(finalUrl);
-            data = await response.json();
-
-            return new Response(
-                JSON.stringify({ data: data }), { status: 200 }
-            );
-        }
-        catch (e) {
-            console.error(`Error fetching data: ${e}`);
-            alert(`Error fetching data: ${e}`);
-            return new Response(
-                JSON.stringify({ error: "Error fetching data" }), { status: 505 }
-            );
-        }
-
+    return new Response(JSON.stringify({ finalUrl }), { status: 200 });
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ error: "Error processing request" }), { status: 506 }
+      JSON.stringify({ error: "Error processing request" }),
+      { status: 500 }
     );
   }
 };
-
-function cleanUrl(url: string): string {
-    const parsedUrl = new URL(url);
-    return parsedUrl.origin + parsedUrl.pathname;
-}
