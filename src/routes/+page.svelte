@@ -79,8 +79,8 @@
                 const text: string = replyInfo["body"];
                 let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
 
-                if (/yta/.test(text.toLowerCase())) opinion = Opinion.YTA;
-                else if (/nta/.test(text.toLowerCase())) opinion = Opinion.NTA;
+                if (/yta/.test(text.toLowerCase()) || /ywbta/.test(text.toLowerCase())) opinion = Opinion.YTA;
+                else if (/nta/.test(text.toLowerCase()) || /ywnbta/.test(text.toLowerCase())) opinion = Opinion.NTA;
                 else if (/esh/.test(text.toLowerCase())) opinion = Opinion.ESH;
                 else if (/nah/.test(text.toLowerCase())) opinion = Opinion.NAH;
                 else if (/info/.test(text.toLowerCase())) opinion = Opinion.INFO;
