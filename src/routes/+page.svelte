@@ -184,7 +184,7 @@
                     <ol>NTA: Not the Asshole</ol>
                     <ol>YTA: You're the Asshole</ol>
                     <ol>ESH: Everyone sucks here</ol>
-                    <ol>NAH: Not assholes here</ol>
+                    <ol>NAH: No assholes here</ol>
                     <ol>INFO: More information needed</ol>
                 </li>
 
