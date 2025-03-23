@@ -1,5 +1,12 @@
 <script lang="ts">
     import Chart from "chart.js/auto";
+    import { onMount } from "svelte";
+
+    let isMac: boolean = $state(false);
+
+    onMount(() => {
+        isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    });
 
     const debug = $state(false);
 
@@ -42,6 +49,10 @@
 
     
 
+    function cleanUrl(url: string): string {
+        const parsedUrl = new URL(url);
+        return parsedUrl.origin + parsedUrl.pathname;
+    }
 
     // Fetch the data from the URL
     async function processURL(urle: string) {
@@ -57,16 +68,29 @@
             }
         }); 
 
-        if (!response.ok) {
-            console.error("Failed to fetch data:", response.status);
-            alert("Failed to fetch data" + response.status);
+        console.log(`Response status: ${response.status}`);
+        console.log(`Response: ${response}`);
+        let url = (await response.json()).finalUrl;
+
+        console.log(`URL:`, url);
+
+        if (url === null) url = urle;
+        url = cleanUrl(url);
+
+        url = url.endsWith("/") ? url.slice(0, -1) : url;
+        url = url + ".json";
+
+        let data: any;
+        try {
+            const response: Response = await fetch(url);
+            analyzed = true;
+            data = await response.json();
+        }
+        catch (e) {
+            console.log(`Error fetching data: ${e}`);
+            alert(`Error fetching data: ${e}`);
             return;
         }
-
-        const data = (await response.json()).data;
-        console.log(data);
-        analyzed = true;
-
 
         replyAccuracy = data[1]["data"]["children"].length - 1;
         console.log(`Reply Accuracy: ${replyAccuracy}`);
@@ -170,6 +194,9 @@
 <div class="flex flex-col text-center bg-gray-800 text-white min-h-screen">
     <h1>Welcome to Am I the Asshole Analytics</h1>
     <p>Gives cool Analytics on assholery.</p>
+    {#if isMac}
+        <p class="text-red-500 text-9xl">NOTE: This app will not work on MacOS due to a bug with the browser. Sorry!</p>
+    {/if}
     <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p>
     <p>NOTE: In order for a comment to be counted, it must follow the <a class="underline text-gray-400" href="https://www.reddit.com/r/AmItheAsshole/wiki/faq/#wiki_what.2019s_with_these_acronyms.3F_what_do_they_mean.3F" target="_blank">AITAH voting guide</a></p>
     <input class="border-2 border-purple-700 rounded-lg p-2 transition"
