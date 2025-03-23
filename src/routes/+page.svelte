@@ -42,10 +42,6 @@
 
     
 
-    function cleanUrl(url: string): string {
-        const parsedUrl = new URL(url);
-        return parsedUrl.origin + parsedUrl.pathname;
-    }
 
     // Fetch the data from the URL
     async function processURL(urle: string) {
@@ -66,29 +62,16 @@
             }
         }); 
 
-        console.log(`Response status: ${response.status}`);
-        console.log(`Response: ${response}`);
-        let url = (await response.json()).finalUrl;
-
-        console.log(`URL:`, url);
-
-        if (url === null) url = urle;
-        url = cleanUrl(url);
-
-        url = url.endsWith("/") ? url.slice(0, -1) : url;
-        url = url + ".json";
-
-        let data: any;
-        try {
-            const response: Response = await fetch(url);
-            analyzed = true;
-            data = await response.json();
-        }
-        catch (e) {
-            console.log(`Error fetching data: ${e}`);
-            alert(`Error fetching data: ${e}`);
+        if (!response.ok) {
+            console.error("Failed to fetch data:", response.status);
+            alert("Failed to fetch data" + response.status);
             return;
         }
+
+        const data = (await response.json()).data;
+        console.log(data);
+        analyzed = true;
+
 
         replyAccuracy = data[1]["data"]["children"].length - 1;
         console.log(`Reply Accuracy: ${replyAccuracy}`);
