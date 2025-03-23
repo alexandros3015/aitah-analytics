@@ -39,6 +39,14 @@
     let downvotes: number = $state(0);
     let updownRatio: number = $state(0);
 
+
+    
+
+    function cleanUrl(url: string): string {
+        const parsedUrl = new URL(url);
+        return parsedUrl.origin + parsedUrl.pathname;
+    }
+
     // Fetch the data from the URL
     async function processURL(urle: string) {
         if (urle === "") {
@@ -50,12 +58,37 @@
         analyzedReply = false;
         replies = [];
 
-        let url = urle.endsWith("/") ? urle.slice(0, -1) : urle;
+        let response = await fetch("api/shareLinkFix", {
+            method: "POST",
+            body: JSON.stringify({ url: urle }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }); 
+
+        console.log(`Response status: ${response.status}`);
+        console.log(`Response: ${response}`);
+        let url = (await response.json()).finalUrl;
+
+        console.log(`URL:`, url);
+
+        if (url === null) url = urle;
+        url = cleanUrl(url);
+
+        url = url.endsWith("/") ? url.slice(0, -1) : url;
         url = url + ".json";
 
-        const response: Response = await fetch(url);
-        analyzed = true;
-        const data: any = await response.json();
+        let data: any;
+        try {
+            const response: Response = await fetch(url);
+            analyzed = true;
+            data = await response.json();
+        }
+        catch (e) {
+            console.log(`Error fetching data: ${e}`);
+            alert(`Error fetching data: ${e}`);
+            return;
+        }
 
         replyAccuracy = data[1]["data"]["children"].length - 1;
         console.log(`Reply Accuracy: ${replyAccuracy}`);
@@ -76,8 +109,8 @@
                 const text: string = replyInfo["body"];
                 let opinion: typeof Opinion[keyof typeof Opinion] = Opinion.NAH;
 
-                if (/yta/.test(text.toLowerCase())) opinion = Opinion.YTA;
-                else if (/nta/.test(text.toLowerCase())) opinion = Opinion.NTA;
+                if (/yta/.test(text.toLowerCase()) || /ywbta/.test(text.toLowerCase())) opinion = Opinion.YTA;
+                else if (/nta/.test(text.toLowerCase()) || /ywnbta/.test(text.toLowerCase())) opinion = Opinion.NTA;
                 else if (/esh/.test(text.toLowerCase())) opinion = Opinion.ESH;
                 else if (/nah/.test(text.toLowerCase())) opinion = Opinion.NAH;
                 else if (/info/.test(text.toLowerCase())) opinion = Opinion.INFO;
@@ -141,7 +174,7 @@
                     ]
                 },
                 options: {
-                    responsive: true,
+                    responsive: false,
                     plugins: {
                         legend: {
                             position: "top"
@@ -160,6 +193,7 @@
     <h1>Welcome to Am I the Asshole Analytics</h1>
     <p>Gives cool Analytics on assholery.</p>
     <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p>
+    <p>NOTE: In order for a comment to be counted, it must follow the <a class="underline text-gray-400" href="https://www.reddit.com/r/AmItheAsshole/wiki/faq/#wiki_what.2019s_with_these_acronyms.3F_what_do_they_mean.3F" target="_blank">AITAH voting guide</a></p>
     <input class="border-2 border-purple-700 rounded-lg p-2 transition"
     bind:value={url} type="text" placeholder="Enter a URL" />
 
@@ -180,22 +214,20 @@
                     <ol>NTA: Not the Asshole</ol>
                     <ol>YTA: You're the Asshole</ol>
                     <ol>ESH: Everyone sucks here</ol>
-                    <ol>NAH: Not assholes here</ol>
+                    <ol>NAH: No assholes here</ol>
                     <ol>INFO: More information needed</ol>
                 </li>
 
             </div>
 
-            <div class="">
-                <canvas id="aggregate-chart" width="300" height="300"></canvas>
-            
-            {#each Object.entries(opinionTotal) as [key, value]}
-                <p class="p-1 text-3xl">{key}: {value}</p>
-            {/each}
-            </div>
-
-            <div class="text-4xl">
-                Average Opinion: {generalConsensus}
+            <div class="grid grid-cols-2 items-center"> 
+                <div class="p-2">
+                    {#each Object.entries(opinionTotal) as [key, value]}
+                        <p class="p-1 text-3xl">{key}: {value}</p>
+                    {/each}
+                    <p class="text-4xl">Average Opinion: {generalConsensus}</p> 
+                </div>
+                <canvas id="aggregate-chart" width="800" height="800"></canvas>    
             </div>
         <!--Wow-->
         {/if}
