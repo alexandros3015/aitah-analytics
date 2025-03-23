@@ -118,12 +118,43 @@ export const POST: RequestHandler = async ({ request }) => {
       console.log("Final URL after adding title slug:", finalUrl);
     }
 
-    return new Response(JSON.stringify({ finalUrl }), { status: 200 });
+    // TODO: add full functionality
+
+
+        console.log(`URL:`, finalUrl);
+
+        if (finalUrl === null) finalUrl = url;
+        finalUrl = cleanUrl(finalUrl);
+
+        finalUrl = finalUrl.endsWith("/") ? finalUrl.slice(0, -1) : finalUrl;
+        finalUrl = finalUrl + ".json";
+
+        let data: any;
+        try {
+            const response: Response = await fetch(finalUrl);
+            data = await response.json();
+
+            return new Response(
+                JSON.stringify({ data: data }), { status: 200 }
+            );
+        }
+        catch (e) {
+            console.error(`Error fetching data: ${e}`);
+            alert(`Error fetching data: ${e}`);
+            return new Response(
+                JSON.stringify({ error: "Error fetching data" }), { status: 500 }
+            );
+        }
+
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ error: "Error processing request" }),
-      { status: 500 }
+      JSON.stringify({ error: "Error processing request" }), { status: 500 }
     );
   }
 };
+
+function cleanUrl(url: string): string {
+    const parsedUrl = new URL(url);
+    return parsedUrl.origin + parsedUrl.pathname;
+}
