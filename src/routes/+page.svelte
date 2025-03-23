@@ -39,13 +39,38 @@
     let downvotes: number = $state(0);
     let updownRatio: number = $state(0);
 
+
+    
+
+    function cleanUrl(url: string): string {
+        const parsedUrl = new URL(url);
+        return parsedUrl.origin + parsedUrl.pathname;
+    }
+
     // Fetch the data from the URL
     async function processURL(urle: string) {
         analyzed = false;
         analyzedReply = false;
         replies = [];
 
-        let url = urle.endsWith("/") ? urle.slice(0, -1) : urle;
+        let response = await fetch("api/shareLinkFix", {
+            method: "POST",
+            body: JSON.stringify({ url: urle }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }); 
+
+        console.log(`Response status: ${response.status}`);
+        console.log(`Response: ${response}`);
+        let url = await response.json();
+
+        console.log(`URL: ${url}`);
+
+        if (url === null) url = urle;
+        url = cleanUrl(url);
+
+        url = url.endsWith("/") ? url.slice(0, -1) : url;
         url = url + ".json";
 
         let data: any;
