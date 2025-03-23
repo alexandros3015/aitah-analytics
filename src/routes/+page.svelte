@@ -63,9 +63,9 @@
 
         console.log(`Response status: ${response.status}`);
         console.log(`Response: ${response}`);
-        let url = await response.json();
+        let url = (await response.json()).finalUrl;
 
-        console.log(`URL: ${url}`);
+        console.log(`URL:`, url);
 
         if (url === null) url = urle;
         url = cleanUrl(url);
