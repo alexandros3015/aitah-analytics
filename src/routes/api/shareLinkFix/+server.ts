@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
           JSON.stringify({
             error: "Failed to follow redirect on share URL",
           }),
-          { status: 500 }
+          { status: 501 }
         );
       }
       // The URL after redirection should be the full comments URL.
@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
       console.error("Unexpected URL format after resolving:", finalUrl);
       return new Response(
         JSON.stringify({ error: "Unexpected URL format" }),
-        { status: 500 }
+        { status: 502 }
       );
     }
     const subreddit = match[1];
@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ request }) => {
         );
         return new Response(
           JSON.stringify({ error: "Failed to fetch post JSON data" }),
-          { status: 500 }
+          { status: 503 }
         );
       }
       const jsonData = await jsonResponse.json();
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
         console.error("Could not extract post data or title.");
         return new Response(
           JSON.stringify({ error: "Could not extract post data" }),
-          { status: 500 }
+          { status: 504 }
         );
       }
       const title = postData.title;
@@ -142,14 +142,14 @@ export const POST: RequestHandler = async ({ request }) => {
             console.error(`Error fetching data: ${e}`);
             alert(`Error fetching data: ${e}`);
             return new Response(
-                JSON.stringify({ error: "Error fetching data" }), { status: 500 }
+                JSON.stringify({ error: "Error fetching data" }), { status: 505 }
             );
         }
 
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ error: "Error processing request" }), { status: 500 }
+      JSON.stringify({ error: "Error processing request" }), { status: 506 }
     );
   }
 };
