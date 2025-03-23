@@ -48,9 +48,17 @@
         let url = urle.endsWith("/") ? urle.slice(0, -1) : urle;
         url = url + ".json";
 
-        const response: Response = await fetch(url);
-        analyzed = true;
-        const data: any = await response.json();
+        let data: any;
+        try {
+            const response: Response = await fetch(url);
+            analyzed = true;
+            data = await response.json();
+        }
+        catch (e) {
+            console.log(`Error fetching data: ${e}`);
+            alert(`Error fetching data: ${e}`);
+            return;
+        }
 
         replyAccuracy = data[1]["data"]["children"].length - 1;
         console.log(`Reply Accuracy: ${replyAccuracy}`);
@@ -155,6 +163,7 @@
     <h1>Welcome to Am I the Asshole Analytics</h1>
     <p>Gives cool Analytics on assholery.</p>
     <p>Simply enter a URL to an AITAH post and see the results. (e.g. https://www.reddit.com/r/AmItheAsshole/comments/[id]/[post title]/)</p>
+    <p>NOTE: In order for a comment to be counted, it must follow the <a class="underline text-gray-400" href="https://www.reddit.com/r/AmItheAsshole/wiki/faq/#wiki_what.2019s_with_these_acronyms.3F_what_do_they_mean.3F" target="_blank">AITAH voting guide</a></p>
     <input class="border-2 border-purple-700 rounded-lg p-2 transition"
     bind:value={url} type="text" placeholder="Enter a URL" />
 
